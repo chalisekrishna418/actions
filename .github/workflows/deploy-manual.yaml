@@ -11,8 +11,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  COMPONENT: "gh-actions-deploy"
-  CONTAINER: "gh-actions-app"
+  COMPONENT: "gh-actions"
   REPO: ${{ github.repository }}
 
 jobs:
