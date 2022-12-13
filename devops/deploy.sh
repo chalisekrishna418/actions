@@ -29,8 +29,8 @@ echo "ℹ️ Maximum parallel deployments: $MAX_DEPLOYMENT"
 for NAMESPACE in $NAMESPACES
 do
     trigger_deployment $NAMESPACE &
-    let total+=1
-    let running+=1
+    total=$((total+1))
+    running=$((running+1))
     if [ $running -eq $MAX_DEPLOYMENT ]; then
         echo "⌛ $running deployments in-progress, waiting to complete..."
         wait
