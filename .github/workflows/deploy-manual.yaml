@@ -1,9 +1,9 @@
-name: manual-cd
+name: manual-cicd
 
 on:
   workflow_dispatch:
     inputs:
-      image-tag:
+      branch:
         description: 'Enter Image Tag to deploy'
         required: true
         default: 'master'
@@ -15,10 +15,64 @@ env:
   CONTAINER: "gh-actions-app"
 
 jobs:
+  ############
+  ## ToDo: Add logic to check if the image already exists before build
+  ## Benefits: Saves GHActions cost and CI-CD time
+  #############
+
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create tag for image
+        id: date
+        run: echo "::set-output name=now::$(date +'%Y%m%d%H%M%S')"
+
+      - name: Create alternate tag for image
+        id: gittag
+        run: echo "::set-output name=sha::$(git rev-parse --short HEAD)"
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            ${{ inputs.branch }}
+            ${{ steps.gittag.outputs.sha }}
+            ${{ steps.date.outputs.now }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          file: devops/Dockerfile
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            ${{ steps.meta.outputs.labels }}
+
   deploy-dev:
     if: ${{ inputs.env }} = 'dev'
     runs-on: ubuntu-latest
     environment: dev
+    env:
+      IMAGE_TAG: ${{ inputs.branch }}.
     permissions:
       contents: read
       packages: read
@@ -34,6 +88,10 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Get alternate tag for image
+        id: gittag
+        run: echo "::set-output name=tag::$(git rev-parse --short HEAD)"
 
       - name: prepare for SSH-Tunnel 
         run: |-
@@ -56,7 +114,7 @@ jobs:
       - name: kubectl
         run: |-
           NAMESPACES=$(kubectl get deploy -A -l repo=gh-actions | cut -f1 -d " " | grep -v NAMESPACE)
-          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:${{ inputs.image-tag }};done
+          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:${{ steps.gittag.outputs.sha }};done
 
   deploy-uat:
     runs-on: ubuntu-latest
@@ -77,6 +135,10 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Get alternate tag for image
+        id: gittag
+        run: echo "::set-output name=tag::$(git rev-parse --short HEAD)"
 
       - name: prepare for SSH-Tunnel 
         run: |-
@@ -99,7 +161,7 @@ jobs:
       - name: kubectl
         run: |-
           NAMESPACES=$(kubectl get deploy -A -l repo=gh-actions | cut -f1 -d " " | grep -v NAMESPACE)
-          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:${{ inputs.image-tag }};done
+          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:${{ steps.gittag.outputs.sha }};done
 
   deploy-gb-prod:
     runs-on: ubuntu-latest
@@ -121,6 +183,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get alternate tag for image
+        id: gittag
+        run: echo "::set-output name=tag::$(git rev-parse --short HEAD)"
+
       - name: prepare for SSH-Tunnel 
         run: |-
           mkdir -p ~/.ssh
@@ -142,7 +208,7 @@ jobs:
       - name: kubectl
         run: |-
           NAMESPACES=$(kubectl get deploy -A -l repo=gh-actions | cut -f1 -d " " | grep -v NAMESPACE)
-          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:${{ inputs.image-tag }};done
+          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:${{ steps.gittag.outputs.sha }};done
 
   deploy-de-prod:
     runs-on: ubuntu-latest
@@ -164,6 +230,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get alternate tag for image
+        id: gittag
+        run: echo "::set-output name=tag::$(git rev-parse --short HEAD)"
+
       - name: prepare for SSH-Tunnel 
         run: |-
           mkdir -p ~/.ssh
@@ -185,4 +255,4 @@ jobs:
       - name: kubectl
         run: |-
           NAMESPACES=$(kubectl get deploy -A -l repo=gh-actions | cut -f1 -d " " | grep -v NAMESPACE)
-          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:${{ inputs.image-tag }};done
+          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:${{ steps.gittag.outputs.sha }};done
