@@ -11,8 +11,8 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  COMPONENT: "trinity-vm-deploy"
-  CONTAINER: "trinity-vm"
+  COMPONENT: "gh-actions-deploy"
+  CONTAINER: "gh-actions-app"
 
 jobs:
   ############
@@ -70,6 +70,7 @@ jobs:
   deploy-dev:
     if: ${{ inputs.env }} = 'dev'
     runs-on: ubuntu-latest
+    needs: [build]
     environment: dev
     permissions:
       contents: read
@@ -133,6 +134,98 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
+      - name: Add SHORT_SHA env property with commit short sha
+        run: echo "IMAGE_TAG=`git rev-parse --short HEAD`" >> $GITHUB_ENV
+
+      - name: prepare for SSH-Tunnel 
+        run: |-
+          mkdir -p ~/.ssh
+          ssh-keyscan ${{ secrets.BASTION_HOST }} >> /home/runner/.ssh/known_hosts
+          cat /home/runner/.ssh/known_hosts
+
+      - name: Create SSH-Tunnel
+        run: |-
+          eval $(ssh-agent -s)
+          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
+          ssh -fN -v -L 127.0.0.1:6443:${{ secrets.KUBE_ENDPOINT }}:6443 ${{ secrets.BASTION_SSH_USER }}@${{ secrets.BASTION_HOST }}
+
+      - name: Setup Kube-config
+        run: |-
+          mkdir -p ~/.kube
+          echo ${{ secrets.KUBE_CONFIG }} | base64 -d > ~/.kube/config
+          chmod 400 ~/.kube/config
+
+      - name: kubectl
+        run: |-
+          NAMESPACES=$(kubectl get deploy -A -l repo=gh-actions | cut -f1 -d " " | grep -v NAMESPACE)
+          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:$IMAGE_TAG;done
+
+  deploy-gb-prod:
+    runs-on: ubuntu-latest
+    environment: gb-prod
+    needs: [deploy-uat]
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      # This step may not be required as well.
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add SHORT_SHA env property with commit short sha
+        run: echo "IMAGE_TAG=`git rev-parse --short HEAD`" >> $GITHUB_ENV
+
+      - name: prepare for SSH-Tunnel 
+        run: |-
+          mkdir -p ~/.ssh
+          ssh-keyscan ${{ secrets.BASTION_HOST }} >> /home/runner/.ssh/known_hosts
+          cat /home/runner/.ssh/known_hosts
+
+      - name: Create SSH-Tunnel
+        run: |-
+          eval $(ssh-agent -s)
+          ssh-add - <<< "${{ secrets.SSH_PRIVATE_KEY }}"
+          ssh -fN -v -L 127.0.0.1:6443:${{ secrets.KUBE_ENDPOINT }}:6443 ${{ secrets.BASTION_SSH_USER }}@${{ secrets.BASTION_HOST }}
+
+      - name: Setup Kube-config
+        run: |-
+          mkdir -p ~/.kube
+          echo ${{ secrets.KUBE_CONFIG }} | base64 -d > ~/.kube/config
+          chmod 400 ~/.kube/config
+
+      - name: kubectl
+        run: |-
+          NAMESPACES=$(kubectl get deploy -A -l repo=gh-actions | cut -f1 -d " " | grep -v NAMESPACE)
+          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:$IMAGE_TAG;done
+
+  deploy-de-prod:
+    runs-on: ubuntu-latest
+    environment: gb-prod
+    needs: [deploy-uat]
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      # This step may not be required as well.
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Add SHORT_SHA env property with commit short sha
         run: echo "IMAGE_TAG=`git rev-parse --short HEAD`" >> $GITHUB_ENV
 
