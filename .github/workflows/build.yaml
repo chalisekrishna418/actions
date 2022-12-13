@@ -34,7 +34,7 @@ jobs:
 
       - name: Create tag for image
         id: date
-        run: echo "::set-output name=tag::$(date +'%Y%m%d%H%M%S')"
+        run: echo "::set-output name=now::$(date +'%Y%m%d%H%M%S')"
 
       - name: Create alternate tag for image
         id: gittag
@@ -45,7 +45,9 @@ jobs:
         uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: ${{ steps.date.gittag.tag }}
+          tags: |
+            ${{ steps.gittag.outputs.tag }}
+            ${{ steps.date.outputs.now }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
