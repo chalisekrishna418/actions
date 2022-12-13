@@ -13,6 +13,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   COMPONENT: "gh-actions-deploy"
   CONTAINER: "gh-actions-app"
+  REPO: ${{ github.repository }}
 
 jobs:
   ############
@@ -109,10 +110,10 @@ jobs:
           echo ${{ secrets.KUBE_CONFIG }} | base64 -d > ~/.kube/config
           chmod 400 ~/.kube/config
 
-      - name: kubectl
+      - name: deploy
         run: |-
-          NAMESPACES=$(kubectl get deploy -A -l repo=gh-actions | cut -f1 -d " " | grep -v NAMESPACE)
-          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:$IMAGE_TAG;done
+          chmod +x devops/deploy.sh && ./devops/deploy.sh
+
 
   deploy-uat:
     runs-on: ubuntu-latest
@@ -155,10 +156,9 @@ jobs:
           echo ${{ secrets.KUBE_CONFIG }} | base64 -d > ~/.kube/config
           chmod 400 ~/.kube/config
 
-      - name: kubectl
+      - name: deploy
         run: |-
-          NAMESPACES=$(kubectl get deploy -A -l repo=gh-actions | cut -f1 -d " " | grep -v NAMESPACE)
-          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:$IMAGE_TAG;done
+          chmod +x devops/deploy.sh && ./devops/deploy.sh
 
   deploy-gb-prod:
     runs-on: ubuntu-latest
@@ -201,10 +201,9 @@ jobs:
           echo ${{ secrets.KUBE_CONFIG }} | base64 -d > ~/.kube/config
           chmod 400 ~/.kube/config
 
-      - name: kubectl
+      - name: deploy
         run: |-
-          NAMESPACES=$(kubectl get deploy -A -l repo=gh-actions | cut -f1 -d " " | grep -v NAMESPACE)
-          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:$IMAGE_TAG;done
+          chmod +x devops/deploy.sh && ./devops/deploy.sh
 
   deploy-de-prod:
     runs-on: ubuntu-latest
@@ -247,7 +246,6 @@ jobs:
           echo ${{ secrets.KUBE_CONFIG }} | base64 -d > ~/.kube/config
           chmod 400 ~/.kube/config
 
-      - name: kubectl
+      - name: deploy
         run: |-
-          NAMESPACES=$(kubectl get deploy -A -l repo=gh-actions | cut -f1 -d " " | grep -v NAMESPACE)
-          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:$IMAGE_TAG;done
+          chmod +x devops/deploy.sh && ./devops/deploy.sh
