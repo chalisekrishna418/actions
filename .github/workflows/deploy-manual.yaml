@@ -15,6 +15,8 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  COMPONENT: "gh-actions-deploy"
+  CONTAINER: "gh-actions-app"
 
 jobs:
   deploy:
@@ -58,4 +60,4 @@ jobs:
       - name: kubectl
         run: |-
           NAMESPACES=$(kubectl get deploy -A -l repo=gh-actions | cut -f1 -d " " | grep -v NAMESPACE)
-          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/gh-actions-deploy gh-actions-app=$REGISTRY/$IMAGE_NAME:${{ inputs.image-tag }};done
+          for NS in $NAMESPACES; do kubectl set image -n $NS deploy/$COMPONENT $CONTAINER=$REGISTRY/$IMAGE_NAME:${{ inputs.image-tag }};done
