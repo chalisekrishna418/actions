@@ -10,7 +10,7 @@ usage() {
 DEPLOYMENT=$COMPONENT-deploy
 CONTAINER=$COMPONENT
 DATE=$(cat $TIMESTAMP)
-NAMESPACES=$(kubectl get deploy -A -l repo=$REPO | cut -f1 -d " " | grep -v NAMESPACE)
+NAMESPACES=$(kubectl get deploy -A -l repo=$REPO_NAME | cut -f1 -d " " | grep -v NAMESPACE)
 
 trigger_deployment() {
     echo "[DEPLOYMENT STARTED] $1"
