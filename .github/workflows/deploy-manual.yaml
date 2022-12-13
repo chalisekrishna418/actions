@@ -91,6 +91,9 @@ jobs:
       
       - name: Add SHORT_SHA env property with commit short sha
         run: echo "IMAGE_TAG=`git rev-parse --short HEAD`" >> $GITHUB_ENV
+      
+      - name: Add REPO_NAME to env
+        run: echo "REPO_NAME=`echo $REPO | cut -f2 -d"/"`" >> $GITHUB_ENV
 
       - name: prepare for SSH-Tunnel 
         run: |-
@@ -114,7 +117,6 @@ jobs:
         run: |-
           chmod +x devops/deploy.sh && ./devops/deploy.sh
 
-
   deploy-uat:
     runs-on: ubuntu-latest
     environment: uat
@@ -137,6 +139,9 @@ jobs:
       
       - name: Add SHORT_SHA env property with commit short sha
         run: echo "IMAGE_TAG=`git rev-parse --short HEAD`" >> $GITHUB_ENV
+
+      - name: Add REPO_NAME to env
+        run: echo "REPO_NAME=`echo $REPO | cut -f2 -d"/"`" >> $GITHUB_ENV
 
       - name: prepare for SSH-Tunnel 
         run: |-
@@ -183,6 +188,9 @@ jobs:
       - name: Add SHORT_SHA env property with commit short sha
         run: echo "IMAGE_TAG=`git rev-parse --short HEAD`" >> $GITHUB_ENV
 
+      - name: Add REPO_NAME to env
+        run: echo "REPO_NAME=`echo $REPO | cut -f2 -d"/"`" >> $GITHUB_ENV
+
       - name: prepare for SSH-Tunnel 
         run: |-
           mkdir -p ~/.ssh
@@ -227,6 +235,9 @@ jobs:
 
       - name: Add SHORT_SHA env property with commit short sha
         run: echo "IMAGE_TAG=`git rev-parse --short HEAD`" >> $GITHUB_ENV
+
+      - name: Add REPO_NAME to env
+        run: echo "REPO_NAME=`echo $REPO | cut -f2 -d"/"`" >> $GITHUB_ENV
 
       - name: prepare for SSH-Tunnel 
         run: |-

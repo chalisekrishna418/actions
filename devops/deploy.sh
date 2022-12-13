@@ -6,7 +6,6 @@ usage() {
   echo "Usage: $ME" >&2
   exit 1
 }
-# set -x
 
 DEPLOYMENT=$COMPONENT-deploy
 CONTAINER=$COMPONENT
