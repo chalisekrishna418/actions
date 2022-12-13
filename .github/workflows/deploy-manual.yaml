@@ -61,7 +61,7 @@ jobs:
   deploy-uat:
     runs-on: ubuntu-latest
     environment: uat
-    needs: [dev]
+    needs: [deploy-dev]
     permissions:
       contents: read
       packages: read
